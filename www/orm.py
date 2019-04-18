@@ -13,10 +13,10 @@ async def create_pool(loop, **kw):
         user=kw['user'],
         password=kw['password'],
         db=kw['db'],
-        charset=kw.get('charset', 'utf-8'),
+        charset=kw.get('charset', 'utf8'),
         autocommit=kw.get('autocommit', True),
         maxsize=kw.get('maxsize', 10),
-        minisize=kw.get('minisize', 1),
+        minsize=kw.get('minsize', 1),
         loop=loop
     )
 
@@ -36,10 +36,10 @@ async def select(sql, args, size=None):
 async def execute(sql, args, autocommit=True):
     log(sql)
     async with __pool.get() as conn:
-        if not autcommit:
+        if not autocommit:
             await conn.begin()
         try:
-            async with conn.cursor(aiomysql.DictCursor) as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(sql.replace('?', '%s'), args)
                 affected = cur.rowcount
             if not autocommit:
@@ -70,7 +70,7 @@ class Field(object):
 class StringField(Field):
 
     def __init__(self, name=None, primary_key=False, default=False, ddl='varchar(100)'):
-        super().__init__(name, dll, primary_key, default)
+        super().__init__(name, ddl, primary_key, default)
 
 class BooleanField(Field):
 
@@ -155,7 +155,7 @@ class Model(dict, metaclass=ModelMetaclass):
                 value = field.default() if callable(field.default) else field.default
                 logging.debug('using default value for %s: %s' % (key, str(value)))
                 setattr(self, key, value)
-            return value
+        return value
 
     @classmethod
     async def findAll(cls, where=None, args=None, **kw):
